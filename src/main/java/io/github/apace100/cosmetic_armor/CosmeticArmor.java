@@ -22,6 +22,7 @@ public class CosmeticArmor implements ModInitializer {
 
 	public static final TagKey<Item> BLACKLIST = TagKey.of(Registry.ITEM_KEY, id("blacklist"));
 	public static final TagKey<Item> ALWAYS_VISIBLE = TagKey.of(Registry.ITEM_KEY, id("always_visible"));
+	public static final TagKey<Item> COZIFY_HATS_WEARABLE = TagKey.of(Registry.ITEM_KEY, new Identifier("cozify", "hats_wearable"));
 
 	@Override
 	public void onInitialize() {
@@ -34,6 +35,10 @@ public class CosmeticArmor implements ModInitializer {
 				if(MobEntity.getPreferredEquipmentSlot(stack) == slot) {
 					return TriState.TRUE;
 				}
+				// Allow hats to be in trinkets slot
+				if (slot == EquipmentSlot.HEAD && stack.isIn(COZIFY_HATS_WEARABLE)) {
+					return TriState.TRUE;
+				}
 				return TriState.DEFAULT;
 			});
 		}
@@ -42,7 +47,14 @@ public class CosmeticArmor implements ModInitializer {
 	public static ItemStack getCosmeticArmor(LivingEntity entity, EquipmentSlot slot) {
 		Optional<TrinketComponent> component = TrinketsApi.getTrinketComponent(entity);
 		if(component.isPresent()) {
-			List<Pair<SlotReference, ItemStack>> list = component.get().getEquipped(stack -> MobEntity.getPreferredEquipmentSlot(stack) == slot);
+			List<Pair<SlotReference, ItemStack>> list = component.get().getEquipped(stack -> {
+				// If item has custom tag, then it should have preferred slot as head instead of...
+				// well... nothing... cause kubejs doesn't support
+				if (stack.isIn(COZIFY_HATS_WEARABLE)) {
+					return EquipmentSlot.HEAD == slot;
+				}
+				return MobEntity.getPreferredEquipmentSlot(stack) == slot;
+			});
 			for(Pair<SlotReference, ItemStack> equipped : list) {
 				SlotType slotType = equipped.getLeft().inventory().getSlotType();
 				if(!slotType.getName().equals("cosmetic")) {
